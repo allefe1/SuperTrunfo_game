@@ -79,13 +79,37 @@ class _HeroesListScreenState extends State<HeroesListScreen> {
             width: 50,
             height: 50,
             fit: BoxFit.cover,
-            placeholder: (context, url) => const CircularProgressIndicator(),
-            errorWidget: (context, url, error) => Container(
+            httpHeaders: const {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            },
+            placeholder: (context, url) => Container(
               width: 50,
               height: 50,
-              color: Colors.grey[300],
-              child: const Icon(Icons.person, color: Colors.grey),
+              child: const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
             ),
+            errorWidget: (context, url, error) {
+              print('[IMAGE ERROR] URL: $url');
+              print('[IMAGE ERROR] Error: $error');
+              return Container(
+                width: 50,
+                height: 50,
+                color: Colors.grey[300],
+                child: Icon(
+                  Icons.person, 
+                  color: Colors.grey[600],
+                  size: 30,
+                ),
+              );
+            },
+            fadeInDuration: const Duration(milliseconds: 300),
+            maxWidthDiskCache: 200,
+            maxHeightDiskCache: 200,
           ),
         ),
         title: Text(
