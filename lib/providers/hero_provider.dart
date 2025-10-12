@@ -2,16 +2,19 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/hero_models.dart';
 import '../services/hero_service.dart';
+import '../services/database_service.dart';
 
 class HeroProvider extends ChangeNotifier {
   final HeroService _heroService = HeroService();
-  
+  final DatabaseService _databaseService = DatabaseService.instance;
+
   List<SuperHero> _allHeroes = [];
   List<SuperHero> _myCards = [];
   bool _isLoading = false;
   String? _error;
   SuperHero? _dailyCard;
   String? _lastDailyCardDate;
+  bool _isOffline = false;
 
   List<SuperHero> get allHeroes => _allHeroes;
   List<SuperHero> get myCards => _myCards;
@@ -19,26 +22,85 @@ class HeroProvider extends ChangeNotifier {
   String? get error => _error;
   SuperHero? get dailyCard => _dailyCard;
   bool get canGetDailyCard => _lastDailyCardDate != _getTodayString();
+  bool get isOffline => _isOffline;
 
   static const int maxCards = 15;
 
+  // com cache + offline
   Future<void> loadAllHeroes() async {
     _setLoading(true);
     try {
-      _allHeroes = await _heroService.getAllHeroes();
+      // primeiro, tenta carregar da API
+      try {
+        print('[CACHE] Tentando carregar da API...');
+        _allHeroes = await _heroService.getAllHeroes();
+
+        // Sucesso da API - salva no cache
+        await _databaseService.clearCache();
+        await _databaseService.cacheHeroes(_allHeroes);
+        _isOffline = false;
+        print(
+            '[CACHE] ✅ Carregado da API e salvo no cache: ${_allHeroes.length} heróis');
+      } catch (apiError) {
+        print('[CACHE] ❌ Erro na API: $apiError');
+
+        // Falha da API - tenta carregar do cache
+        final hasCache = await _databaseService.hasCache();
+        if (hasCache) {
+          print('[CACHE] 💾 Carregando do cache local...');
+          _allHeroes = await _databaseService.getCachedHeroes();
+          _isOffline = true;
+          print('[CACHE] ✅ Carregado do cache: ${_allHeroes.length} heróis');
+        } else {
+          throw Exception('Sem conexão e sem cache disponível');
+        }
+      }
+
       _error = null;
     } catch (e) {
       _error = e.toString();
       _allHeroes = [];
+      print('[CACHE] ❌ Erro final: $e');
     } finally {
       _setLoading(false);
     }
   }
 
+  // com cache + offline
   Future<List<SuperHero>> getHeroesPaginated(int page, int limit) async {
     try {
-      return await _heroService.getHeroesPaginated(page: page, limit: limit);
+      print('[CACHE] 📄 Solicitando página $page (limite: $limit)');
+
+      // Primeiro, tenta carregar da API com _start/_limit
+      try {
+        final apiHeroes =
+            await _heroService.getHeroesPaginated(page: page, limit: limit);
+
+        // API funcionando - salva no cache
+        await _databaseService.cacheHeroes(apiHeroes);
+        _isOffline = false;
+        print(
+            '[CACHE] ✅ Página $page carregada da API: ${apiHeroes.length} heróis');
+
+        return apiHeroes;
+      } catch (apiError) {
+        print('[CACHE] ❌ Erro na API: $apiError');
+
+        // Falha da API - carrega do cache
+        final offset = (page - 1) * limit;
+        final cachedHeroes = await _databaseService.getCachedHeroes(
+          limit: limit,
+          offset: offset,
+        );
+
+        _isOffline = true;
+        print(
+            '[CACHE] 💾 Página $page carregada do cache: ${cachedHeroes.length} heróis');
+
+        return cachedHeroes;
+      }
     } catch (e) {
+      print('[CACHE] ❌ Erro geral: $e');
       throw Exception('Erro ao carregar heróis paginados: $e');
     }
   }
@@ -50,7 +112,16 @@ class HeroProvider extends ChangeNotifier {
 
     _setLoading(true);
     try {
-      _dailyCard = await _heroService.getRandomHero();
+      if (_allHeroes.isEmpty) {
+        await loadAllHeroes();
+      }
+
+      if (_allHeroes.isEmpty) {
+        throw Exception('Nenhum herói disponível');
+      }
+
+      final randomIndex = DateTime.now().millisecond % _allHeroes.length;
+      _dailyCard = _allHeroes[randomIndex];
       _lastDailyCardDate = _getTodayString();
       await _saveDailyCardDate();
       _error = null;
@@ -59,6 +130,29 @@ class HeroProvider extends ChangeNotifier {
       _dailyCard = null;
     } finally {
       _setLoading(false);
+    }
+  }
+
+
+  Future<SuperHero?> getHeroById(int id) async {
+    try {
+      // primeiro, tenta carregar da API
+      try {
+        final apiHero = await _heroService.getHeroById(id);
+        _isOffline = false;
+        return apiHero;
+      } catch (apiError) {
+        print('[CACHE] ❌ Erro na API para herói $id: $apiError');
+
+        // falha da API - tenta carregar do cache
+        final cachedHero = await _databaseService.getCachedHeroById(id);
+        _isOffline = true;
+
+        return cachedHero;
+      }
+    } catch (e) {
+      print('[CACHE] ❌ Erro ao buscar herói $id: $e');
+      return null;
     }
   }
 
@@ -111,13 +205,13 @@ class HeroProvider extends ChangeNotifier {
   Future<void> _loadMyCards() async {
     final prefs = await SharedPreferences.getInstance();
     final cardIds = prefs.getStringList('my_cards') ?? [];
-    
+
     _myCards.clear();
     for (final idString in cardIds) {
       final id = int.tryParse(idString);
       if (id != null) {
         try {
-          final hero = await _heroService.getHeroById(id);
+          final hero = await getHeroById(id); // Agora usa cache também
           if (hero != null) {
             _myCards.add(hero);
           }

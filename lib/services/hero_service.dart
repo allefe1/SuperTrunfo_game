@@ -44,14 +44,22 @@ class HeroService {
     required int limit,
   }) async {
     try {
+      // Calcular _start baseado na página
+      final start = (page - 1) * limit;
+
+      print('[API] Solicitando página $page: _start=$start, _limit=$limit');
+
       final response = await _dio.get('/heroes', queryParameters: {
-        '_page': page,
+        '_start': start,
         '_limit': limit,
       });
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
-        return data.map((json) => SuperHero.fromJson(json)).toList();
+        final heroes = data.map((json) => SuperHero.fromJson(json)).toList();
+
+        print('[API] ✅ Página $page: ${heroes.length} heróis carregados');
+        return heroes;
       } else {
         throw Exception(
             'Falha ao carregar heróis paginados: ${response.statusCode}');
