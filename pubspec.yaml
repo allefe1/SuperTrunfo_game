@@ -1,0 +1,40 @@
+name: superhero_trunfo
+description: Jogo Super Trunfo com Super-Heróis - Trabalho 1
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.13.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  infinite_scroll_pagination: ^4.0.0
+  cached_network_image: ^3.3.0
+  primer_progress_bar: ^0.2.0
+  awesome_dialog: ^3.2.0
+  shared_preferences: ^2.2.2
+  
+  http: ^1.1.0
+  dio: ^5.3.4
+  provider: ^6.1.1
+  floor: ^1.4.2
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  
+  floor_generator: ^1.4.2
+  build_runner: ^2.4.7
+
+flutter:
+  uses-material-design: true
