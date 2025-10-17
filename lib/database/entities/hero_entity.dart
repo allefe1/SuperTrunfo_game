@@ -1,7 +1,7 @@
 // lib/database/entities/hero_entity.dart
 import 'package:floor/floor.dart';
 import 'dart:convert';
-import '../../models/hero_models.dart';
+import '../../domain/hero_domain.dart';
 
 @Entity(tableName: 'heroes')
 class HeroEntity {

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:primer_progress_bar/primer_progress_bar.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
-import '../models/hero_models.dart';
+import '../domain/hero_domain.dart';
 import '../providers/hero_provider.dart';
 
 class BattleScreen extends StatefulWidget {

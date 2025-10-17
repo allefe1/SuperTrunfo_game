@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import '../models/hero_models.dart';
+import '../domain/hero_domain.dart';
 
 class HeroService {
   late final Dio _dio;

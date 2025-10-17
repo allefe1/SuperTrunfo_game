@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/hero_models.dart';
-import '../services/hero_service.dart';
-import '../services/database_service.dart';
+import '../domain/hero_domain.dart';
+import '../repository/hero_repository.dart';
+import '../repository/database_repository.dart';
 
 class HeroProvider extends ChangeNotifier {
   final HeroService _heroService = HeroService();

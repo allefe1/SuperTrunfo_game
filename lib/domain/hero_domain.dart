@@ -23,7 +23,7 @@ class SuperHero {
 
   factory SuperHero.fromJson(Map<String, dynamic> json) {
     return SuperHero(
-      id: _parseToInt(json['id']), // Corrige o ID também
+      id: _parseToInt(json['id']), 
       name: json['name'] ?? '',
       slug: json['slug'] ?? '',
       powerStats: PowerStats.fromJson(json['powerstats'] ?? {}),

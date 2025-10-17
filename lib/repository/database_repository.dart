@@ -1,6 +1,6 @@
 import '../database/app_database.dart';
 import '../database/entities/hero_entity.dart';
-import '../models/hero_models.dart';
+import '../domain/hero_domain.dart';
 
 class DatabaseService {
   static DatabaseService? _instance;
