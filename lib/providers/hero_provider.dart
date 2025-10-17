@@ -133,6 +133,10 @@ class HeroProvider extends ChangeNotifier {
     }
   }
 
+  void clearDailyCard() {
+    _dailyCard = null;
+    notifyListeners();
+  }
 
   Future<SuperHero?> getHeroById(int id) async {
     try {

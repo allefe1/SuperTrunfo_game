@@ -386,6 +386,8 @@ class _DailyCardScreenState extends State<DailyCardScreen> {
     try {
       context.read<HeroProvider>().addToMyCards(hero);
 
+      context.read<HeroProvider>().clearDailyCard();
+
       AwesomeDialog(
         context: context,
         dialogType: DialogType.success,
