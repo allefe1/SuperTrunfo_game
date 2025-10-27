@@ -166,23 +166,55 @@ class _BattleScreenState extends State<BattleScreen> {
         child: Column(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                imageUrl: hero.images.md,
+              borderRadius: BorderRadius.circular(12),             
+              child: Image.network(
+                hero.images.md,
                 height: 200,
                 width: 200,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  height: 200,
-                  width: 200,
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: 200,
-                  width: 200,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.person, size: 50, color: Colors.grey),
-                ),
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    height: 200,
+                    width: 200,
+                    color: Colors.grey[300],
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {                 
+                  return Image.network(
+                    hero.images.sm,
+                    height: 200,
+                    width: 200,
+                    fit: BoxFit.cover,
+                    errorBuilder: (ctx, err, stack) => Container(
+                      height: 200,
+                      width: 200,
+                      color: Colors.grey[300],
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.person,
+                              size: 50, color: Colors.grey),
+                          const SizedBox(height: 8),
+                          Text(
+                            hero.name,
+                            style: const TextStyle(
+                                fontSize: 10, color: Colors.grey),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 16),

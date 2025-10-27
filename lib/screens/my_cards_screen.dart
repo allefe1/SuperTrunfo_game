@@ -55,7 +55,7 @@ class MyCardsScreen extends StatelessWidget {
   Widget _buildHeader(HeroProvider provider) {
     final cardsCount = provider.myCards.length;
     final maxCards = HeroProvider.maxCards;
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -64,7 +64,8 @@ class MyCardsScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildStatCard('Total', cardsCount.toString(), Colors.blue),
-              _buildStatCard('Disponível', (maxCards - cardsCount).toString(), Colors.green),
+              _buildStatCard('Disponível', (maxCards - cardsCount).toString(),
+                  Colors.green),
               _buildStatCard('Máximo', maxCards.toString(), Colors.orange),
             ],
           ),
@@ -78,8 +79,8 @@ class MyCardsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            cardsCount >= maxCards 
-                ? 'Coleção completa!' 
+            cardsCount >= maxCards
+                ? 'Coleção completa!'
                 : 'Você pode ter até $maxCards cartas',
             style: TextStyle(
               color: cardsCount >= maxCards ? Colors.red : Colors.grey[600],
@@ -124,7 +125,10 @@ class MyCardsScreen extends StatelessWidget {
 
   Widget _buildCardsGrid(HeroProvider provider) {
     return GridView.builder(
+      key: const PageStorageKey('my_cards_grid'),
       padding: const EdgeInsets.all(16),
+      addAutomaticKeepAlives: true,
+      addRepaintBoundaries: true,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 0.75,
@@ -139,8 +143,10 @@ class MyCardsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroCard(BuildContext context, SuperHero hero, HeroProvider provider) {
+  Widget _buildHeroCard(
+      BuildContext context, SuperHero hero, HeroProvider provider) {
     return Card(
+      key: ValueKey('card_${hero.id}'), // 🔧 ADICIONAR esta linha
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -159,24 +165,63 @@ class MyCardsScreen extends StatelessWidget {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(12),
                     ),
-                    child: CachedNetworkImage(
-                      imageUrl: hero.images.md,
+                    child: Image.network(
+                      hero.images.md,
                       width: double.infinity,
+                      height: double.infinity,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      ),
+
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: double.infinity,
+                          height: double.infinity,
+                          color: Colors.grey[300],
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
+
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback para imagem menor
+                        return Image.network(
+                          hero.images.sm,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => Container(
+                            width: double.infinity,
+                            height: double.infinity,
+                            color: Colors.grey[300],
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.person,
+                                    size: 50, color: Colors.grey),
+                                const SizedBox(height: 8),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                  child: Text(
+                                    hero.name,
+                                    style: const TextStyle(
+                                        fontSize: 10, color: Colors.grey),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   Positioned(
@@ -193,7 +238,8 @@ class MyCardsScreen extends StatelessWidget {
                           color: Colors.red,
                           size: 20,
                         ),
-                        onPressed: () => _confirmRemoval(context, hero, provider),
+                        onPressed: () =>
+                            _confirmRemoval(context, hero, provider),
                       ),
                     ),
                   ),
@@ -242,9 +288,12 @@ class MyCardsScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildMiniStat('STR', hero.powerStats.strength, Colors.red),
-                        _buildMiniStat('SPD', hero.powerStats.speed, Colors.green),
-                        _buildMiniStat('PWR', hero.powerStats.power, Colors.purple),
+                        _buildMiniStat(
+                            'STR', hero.powerStats.strength, Colors.red),
+                        _buildMiniStat(
+                            'SPD', hero.powerStats.speed, Colors.green),
+                        _buildMiniStat(
+                            'PWR', hero.powerStats.power, Colors.purple),
                       ],
                     ),
                   ],
@@ -280,88 +329,87 @@ class MyCardsScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyState() {
-  return Container(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Colors.grey.withOpacity(0.1),
-          Colors.white,
-        ],
-      ),
-    ),
-    child: Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.collections_bookmark_outlined,
-                size: 80,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Sua coleção está vazia',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Adicione cartas dos heróis ou obtenha sua carta diária para começar sua coleção!',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Builder(
-                  builder: (context) => ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.list),
-                    label: const Text('Ver Heróis'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                Builder(
-                  builder: (context) => ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.card_giftcard),
-                    label: const Text('Card Diário'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.grey.withOpacity(0.1),
+            Colors.white,
           ],
         ),
       ),
-    ),
-  );
-}
-
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.collections_bookmark_outlined,
+                  size: 80,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Sua coleção está vazia',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Adicione cartas dos heróis ou obtenha sua carta diária para começar sua coleção!',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Builder(
+                    builder: (context) => ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.list),
+                      label: const Text('Ver Heróis'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                  Builder(
+                    builder: (context) => ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.card_giftcard),
+                      label: const Text('Card Diário'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   void _navigateToDetail(BuildContext context, SuperHero hero) {
     Navigator.push(
@@ -372,7 +420,8 @@ class MyCardsScreen extends StatelessWidget {
     );
   }
 
-  void _confirmRemoval(BuildContext context, SuperHero hero, HeroProvider provider) {
+  void _confirmRemoval(
+      BuildContext context, SuperHero hero, HeroProvider provider) {
     AwesomeDialog(
       context: context,
       dialogType: DialogType.warning,
@@ -397,5 +446,4 @@ class MyCardsScreen extends StatelessWidget {
       },
     ).show();
   }
-
 }
