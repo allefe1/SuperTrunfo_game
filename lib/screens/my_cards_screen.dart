@@ -1,7 +1,5 @@
-// lib/screens/my_cards_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import '../domain/hero_domain.dart';
 import '../providers/hero_provider.dart';
