@@ -16,6 +16,8 @@ class HeroProvider extends ChangeNotifier {
   String? _lastDailyCardDate;
   bool _isOffline = false;
 
+  int _lastOnlinePage = 0;
+
   List<SuperHero> get allHeroes => _allHeroes;
   List<SuperHero> get myCards => _myCards;
   bool get isLoading => _isLoading;
@@ -66,27 +68,40 @@ class HeroProvider extends ChangeNotifier {
     }
   }
 
-  // com cache + offline
+  // com cache + offline (controlado)
   Future<List<SuperHero>> getHeroesPaginated(int page, int limit) async {
     try {
       print('[CACHE] 📄 Solicitando página $page (limite: $limit)');
 
-      // Primeiro, tenta carregar da API com _start/_limit
+      // Primeiro, tenta carregar da API
       try {
         final apiHeroes =
             await _heroService.getHeroesPaginated(page: page, limit: limit);
 
-        // API funcionando - salva no cache
+        // ✅ API funcionou - salva no cache E registra última página online
         await _databaseService.cacheHeroes(apiHeroes);
+        _lastOnlinePage =
+            page;
         _isOffline = false;
+
         print(
             '[CACHE] ✅ Página $page carregada da API: ${apiHeroes.length} heróis');
+        print('[CACHE] 📌 Última página online: $_lastOnlinePage');
 
         return apiHeroes;
       } catch (apiError) {
         print('[CACHE] ❌ Erro na API: $apiError');
 
-        // Falha da API - carrega do cache
+        
+        if (page > _lastOnlinePage) {
+          _isOffline = true;
+          print(
+              '[CACHE] 🚫 Bloqueado - Página $page > última online ($_lastOnlinePage)');
+          throw Exception(
+              'Sem conexão. Você viu até a página $_lastOnlinePage.');
+        }
+
+        // Página já foi vista - busca do cache
         final offset = (page - 1) * limit;
         final cachedHeroes = await _databaseService.getCachedHeroes(
           limit: limit,
@@ -95,41 +110,41 @@ class HeroProvider extends ChangeNotifier {
 
         _isOffline = true;
         print(
-            '[CACHE] 💾 Página $page carregada do cache: ${cachedHeroes.length} heróis');
+            '[CACHE] 💾 Página $page do cache: ${cachedHeroes.length} heróis');
 
         return cachedHeroes;
       }
     } catch (e) {
       print('[CACHE] ❌ Erro geral: $e');
-      throw Exception('Erro ao carregar heróis paginados: $e');
+      rethrow;
     }
   }
 
   Future<void> getDailyCard() async {
+    print('[DAILY CARD] 🎴 Iniciando obtenção de carta diária...');
+
+    
     if (!canGetDailyCard) {
-      throw Exception('Você já pegou sua carta diária hoje!');
+      print('[DAILY CARD] ❌ Já pegou carta hoje');
+      throw Exception('Você já pegou sua carta diária hoje! Volte amanhã.');
     }
 
-    _setLoading(true);
     try {
-      if (_allHeroes.isEmpty) {
-        await loadAllHeroes();
-      }
+      
+      _dailyCard = await _heroService.getRandomHero();
 
-      if (_allHeroes.isEmpty) {
-        throw Exception('Nenhum herói disponível');
-      }
+      if (_dailyCard != null) {
+        print('[DAILY CARD] ✅ Carta obtida: ${_dailyCard!.name}');
 
-      final randomIndex = DateTime.now().millisecond % _allHeroes.length;
-      _dailyCard = _allHeroes[randomIndex];
-      _lastDailyCardDate = _getTodayString();
-      await _saveDailyCardDate();
-      _error = null;
+        
+        _lastDailyCardDate = _getTodayString();
+        await _saveDailyCardDate();
+
+        notifyListeners();
+      }
     } catch (e) {
-      _error = e.toString();
-      _dailyCard = null;
-    } finally {
-      _setLoading(false);
+      print('[DAILY CARD] ❌ Erro ao buscar carta: $e');
+      rethrow;
     }
   }
 

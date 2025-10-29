@@ -91,14 +91,22 @@ class HeroService {
 
   Future<SuperHero> getRandomHero() async {
     try {
-      final allHeroes = await getAllHeroes();
-      if (allHeroes.isEmpty) {
-        throw Exception('Nenhum herói encontrado');
+      //gera id aleatorio para pegar heroi
+      final randomId = (DateTime.now().millisecondsSinceEpoch % 563) + 1;
+
+      print('[REPOSITORY] 🎲 Buscando herói aleatório ID: $randomId');
+
+      final response = await _dio.get('/heroes/$randomId');
+
+      if (response.statusCode == 200) {
+        final hero = SuperHero.fromJson(response.data);
+        print('[REPOSITORY] ✅ Herói aleatório encontrado: ${hero.name}');
+        return hero;
       }
 
-      final random = DateTime.now().millisecondsSinceEpoch % allHeroes.length;
-      return allHeroes[random];
+      throw Exception('Herói não encontrado');
     } catch (e) {
+      print('[REPOSITORY] ❌ Erro ao buscar herói aleatório: $e');
       throw Exception('Erro ao buscar herói aleatório: $e');
     }
   }
