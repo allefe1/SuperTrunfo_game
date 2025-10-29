@@ -215,7 +215,7 @@ class HeroProvider extends ChangeNotifier {
       final id = int.tryParse(idString);
       if (id != null) {
         try {
-          final hero = await getHeroById(id); // Agora usa cache também
+          final hero = await getHeroById(id);
           if (hero != null) {
             _myCards.add(hero);
           }
